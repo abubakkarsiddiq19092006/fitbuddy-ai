@@ -1,4 +1,3 @@
-```js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -11,7 +10,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Get the directory where server.js is located
+// Get the current folder
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,16 +21,11 @@ app.use(express.json());
 // Serve frontend files
 app.use(express.static(__dirname));
 
-// Homepage
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
-// Gemini AI configuration
+// Gemini AI
 function getAI() {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error(
-      "Gemini API key is not configured. Add GEMINI_API_KEY to Render Environment Variables."
+      "Gemini API key is not configured. Add GEMINI_API_KEY in Render Environment Variables."
     );
   }
 
@@ -40,38 +34,57 @@ function getAI() {
   });
 }
 
-// FitBuddy system instructions
+// FitBuddy instructions
 const systemInstruction = `
 You are FitBuddy, a friendly AI fitness planning assistant for general educational fitness guidance.
 
 Create practical, beginner-friendly fitness guidance.
 
-Keep recommendations realistic and easy to follow.
+Help users with:
+- Workout plans
+- Exercise suggestions
+- Home workouts
+- Gym workouts
+- Warm-ups and cool-downs
+- General nutrition guidance
+- Healthy habits
+- Fitness goals
+- Weight management guidance
+- Strength and cardio training
+- Recovery and rest
 
-Consider the user's stated:
-- Fitness goal
-- Experience level
-- Available equipment
-- Available time
-- Preferred activities
+Keep answers clear, encouraging, and easy to follow.
 
-Do not diagnose medical conditions or provide medical treatment.
+Do not diagnose medical conditions.
+Do not prescribe medication.
+Do not provide dangerous or extreme fitness or dieting advice.
 
-If a user mentions an injury, serious medical condition, severe pain,
-or other medical concern, recommend consulting an appropriate healthcare
-professional.
+If a user has a serious injury, medical condition, or concerning symptoms, recommend speaking with a qualified healthcare professional.
 
-Keep responses clear, encouraging, and actionable.
+Adapt the response to the user's goal, experience level, available equipment, and schedule when those details are provided.
 `;
 
-// AI chat endpoint
+// Home page
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "FitBuddy server is running",
+  });
+});
+
+// Chat endpoint
 app.post("/api/chat", async (req, res) => {
   try {
     const { message } = req.body;
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({
-        error: "Please provide a valid message.",
+        error: "Please provide a message.",
       });
     }
 
@@ -81,32 +94,25 @@ app.post("/api/chat", async (req, res) => {
       model: "gemini-2.5-flash",
       contents: message,
       config: {
-        systemInstruction,
+        systemInstruction: systemInstruction,
       },
     });
 
+    const reply = response.text;
+
     res.json({
-      reply: response.text,
+      reply: reply,
     });
   } catch (error) {
     console.error("Gemini API error:", error);
 
     res.status(500).json({
-      error: "Unable to get a response from FitBuddy right now.",
+      error: "Sorry, FitBuddy could not process your request.",
     });
   }
-});
-
-// Health check
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    message: "FitBuddy server is running.",
-  });
 });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`FitBuddy server running on port ${PORT}`);
 });
-```
