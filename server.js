@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // =========================
-// PATH SETUP
+// FILE PATH
 // =========================
 
 const __filename = fileURLToPath(import.meta.url);
@@ -74,7 +74,6 @@ async function generateWithRetry(prompt, retries = 2) {
         error?.message || error
       );
 
-      // Wait before retrying
       if (attempt < retries) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
@@ -111,15 +110,27 @@ If the user asks about a serious injury, medical condition, severe pain,
 or medication, recommend consulting an appropriate qualified healthcare
 professional.
 
+You can help with:
+- Workout plans
+- Exercise suggestions
+- Beginner fitness
+- Strength training
+- Cardio
+- Weight-management basics
+- Healthy eating basics
+- Recovery and rest
+- Motivation
+- General fitness questions
+
+Keep your answers practical and easy to understand.
+
 User question:
 ${message}
 `;
 
     const text = await generateWithRetry(prompt);
 
-    res.json({
-      text,
-    });
+    res.json({ text });
   } catch (error) {
     console.error("Chat error:", error);
 
@@ -158,75 +169,3 @@ app.listen(PORT, () => {
   console.log(`FitBuddy running on port ${PORT}`);
 });
 ```
-
-### 2. Make sure `package.json` has the new Gemini package
-
-Your `package.json` should contain `@google/genai`.
-
-For example:
-
-```json
-{
-  "name": "fitbuddy-ai",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "@google/genai": "^1.0.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2"
-  }
-}
-```
-
-**Important:** If your existing `package.json` already has other dependencies required by your website, **don't delete them**. Just make sure `@google/genai` is included.
-
-### 3. Render Environment Variable
-
-In Render → **Environment Variables**, make sure you have:
-
-```text
-GEMINI_API_KEY = your-new-gemini-api-key
-```
-
-Don't put the actual key in the code or GitHub.
-
-### 4. Commit and deploy
-
-After replacing the files:
-
-```bash
-git add server.js package.json package-lock.json
-git commit -m "Fix Gemini API integration"
-git push
-```
-
-Then Render should automatically deploy the new commit. If automatic deployment isn't enabled, use:
-
-**Render → Manual Deploy → Deploy latest commit**
-
-### 5. Test this first
-
-After deployment, open:
-
-[FitBuddy Health Check](https://fitbuddy-ai-n0wh.onrender.com/api/health?utm_source=chatgpt.com)
-
-You should see something similar to:
-
-```json
-{
-  "status": "OK",
-  "service": "FitBuddy",
-  "geminiConfigured": true
-}
-```
-
-If `geminiConfigured` is **true**, Render is receiving your API key.
-
-Then open your FitBuddy website and try generating a plan again.
-
-The current Google documentation shows the Node.js SDK being initialized with `new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })` and calling `ai.models.generateContent()`, which is why I've structured the server this way.
-
-**One important point:** if your frontend currently sends the request to a different endpoint than `/api/chat`, tell me what your frontend JavaScript uses for `fetch(...)`. I can then make the `server.js` match it exactly.
