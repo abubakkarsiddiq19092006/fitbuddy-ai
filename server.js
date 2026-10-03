@@ -2,14 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-import path from "path";
-import { fileURLToPath } from "url";
 
-// Load Gemini API key from server/.env
-dotenv.config({ path: "./server/.env" });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,13 +11,15 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "..")));
+
+// Serve frontend files from the same folder as server.js
+app.use(express.static("."));
 
 // Check Gemini API configuration
 function getAI() {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error(
-      "Gemini API key is not configured. Add GEMINI_API_KEY to server/.env"
+      "Gemini API key is not configured. Add GEMINI_API_KEY to Render Environment Variables."
     );
   }
 
@@ -56,10 +52,7 @@ For workout plans:
 - Keep responses clear with headings and bullet points.
 `;
 
-// --------------------------------------------------
 // Gemini request with automatic retry
-// --------------------------------------------------
-
 async function generateWithRetry(ai, options, maxRetries = 3) {
   let lastError;
 
@@ -87,23 +80,20 @@ async function generateWithRetry(ai, options, maxRetries = 3) {
         message.includes("429") ||
         message.includes("RESOURCE_EXHAUSTED");
 
-      // If it isn't a temporary error, stop immediately.
       if (!isTemporaryError) {
         throw error;
       }
 
-      // If this was the final attempt, stop.
       if (attempt === maxRetries) {
         throw error;
       }
 
-      // 2 seconds, 4 seconds, 8 seconds
       const delay = 2000 * Math.pow(2, attempt);
 
       console.log(
-        `Gemini temporarily unavailable. Retry ${attempt + 1}/${maxRetries} in ${
-          delay / 1000
-        } seconds...`
+        `Gemini temporarily unavailable. Retry ${
+          attempt + 1
+        }/${maxRetries} in ${delay / 1000} seconds...`
       );
 
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -113,10 +103,7 @@ async function generateWithRetry(ai, options, maxRetries = 3) {
   throw lastError;
 }
 
-// --------------------------------------------------
 // Generate 7-Day Fitness Plan
-// --------------------------------------------------
-
 app.post("/api/generate-plan", async (req, res) => {
   try {
     const {
@@ -131,7 +118,6 @@ app.post("/api/generate-plan", async (req, res) => {
       equipment,
     } = req.body;
 
-    // Validate required fields
     if (!name || !age || !height || !weight || !goal || !level || !days) {
       return res.status(400).json({
         error: "Please complete all required fitness details.",
@@ -172,7 +158,7 @@ Make the plan practical and beginner-friendly.
       model: "gemini-3.8-flash",
       contents: prompt,
       config: {
-        systemInstruction: systemInstruction,
+        systemInstruction,
         temperature: 0.7,
       },
     });
@@ -189,10 +175,7 @@ Make the plan practical and beginner-friendly.
   }
 });
 
-// --------------------------------------------------
 // Ask FitBuddy
-// --------------------------------------------------
-
 app.post("/api/chat", async (req, res) => {
   try {
     const { message } = req.body;
@@ -230,20 +213,14 @@ Do not provide medical diagnosis or treatment.`,
   }
 });
 
-// --------------------------------------------------
-// Server Health Check
-// --------------------------------------------------
-
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({
     status: "FitBuddy server is running",
   });
 });
 
-// --------------------------------------------------
-// Start Server
-// --------------------------------------------------
-
+// Start server
 app.listen(PORT, () => {
   console.log(`FitBuddy is running at http://localhost:${PORT}`);
 });
