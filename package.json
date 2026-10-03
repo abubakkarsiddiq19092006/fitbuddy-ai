@@ -4,8 +4,8 @@
   "description": "FitBuddy - AI Fitness Plan Generator using Gemini",
   "type": "module",
   "scripts": {
-    "start": "node server/server.js",
-    "dev": "node --watch server/server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
   "dependencies": {
     "@google/genai": "latest",
