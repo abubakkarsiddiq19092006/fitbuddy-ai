@@ -112,7 +112,7 @@ Format the response clearly using headings and bullet points.
         for (let attempt = 0; attempt < 3; attempt++) {
             try {
                 response = await ai.models.generateContent({
-                    model: "gemini-2.5-flash",
+                    model: "gemini-3.8-flash",
                     contents: prompt
                 });
 
