@@ -1,14 +1,17 @@
 # FitBuddy - AI Fitness Plan Generator
 
-FitBuddy is an AI-powered fitness plan generator that uses Google Gemini AI to create personalized fitness plans.
+FitBuddy is an AI-powered fitness plan generator that uses Google Gemini AI to create personalized 7-day fitness plans based on the user's goals, fitness level, schedule, and available equipment.
 
 ## Features
 
 - AI-powered fitness plan generation
-- Personalized workout recommendations
+- Personalized 7-day workout plans
+- Workout recommendations based on fitness level
+- Equipment-based workout planning
 - Simple and user-friendly interface
-- Uses Gemini AI for intelligent responses
-- Web-based application
+- Gemini AI integration
+- Fitness questions and AI responses
+- Beginner-friendly fitness guidance
 
 ## Technologies Used
 
@@ -19,9 +22,15 @@ FitBuddy is an AI-powered fitness plan generator that uses Google Gemini AI to c
 - Express.js
 - Google Gemini AI
 
-## How to Run
+## Project Structure
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/abubakkarsiddiq19092006/fitbuddy-ai.git
+```text
+FitBuddy/
+├── index.html
+├── style.css
+├── script.js
+├── server/
+│   ├── server.js
+│   └── .env
+├── package.json
+└── package-lock.json
