@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitBuddy — AI Fitness Assistant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">F</span> FitBuddy</div>
+    <a href="#planner" class="nav-btn">Create Plan</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">POWERED BY GEMINI AI</span>
+        <h1>Your AI<br><span>Fitness Assistant</span></h1>
+        <p>Generate a personalized 7-day fitness plan based on your goals, fitness level, schedule, and available equipment.</p>
+        <a href="#planner" class="primary-btn">Build My Plan <span>→</span></a>
+      </div>
+      <div class="hero-card">
+        <div class="pulse">♥</div>
+        <div>
+          <strong>Smart fitness planning</strong>
+          <p>Workouts • Habits • Progress</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="planner" class="section">
+      <div class="section-heading">
+        <span class="eyebrow">01 / FITNESS PROFILE</span>
+        <h2>Tell FitBuddy about you</h2>
+        <p>Enter your basic details and let Gemini create your plan.</p>
+      </div>
+
+      <form id="fitnessForm" class="form-card">
+        <div class="grid">
+          <label>Name <input name="name" placeholder="Your name" required></label>
+          <label>Age <input name="age" type="number" min="13" max="100" placeholder="e.g. 20" required></label>
+          <label>Gender
+            <select name="gender">
+              <option value="Not specified">Prefer not to say</option>
+              <option>Male</option><option>Female</option><option>Other</option>
+            </select>
+          </label>
+          <label>Height (cm) <input name="height" type="number" min="100" max="250" placeholder="e.g. 170" required></label>
+          <label>Weight (kg) <input name="weight" type="number" min="30" max="250" placeholder="e.g. 65" required></label>
+          <label>Fitness Goal
+            <select name="goal" required>
+              <option value="">Select goal</option>
+              <option>Weight loss</option><option>Weight gain</option><option>Muscle building</option><option>General fitness</option>
+            </select>
+          </label>
+          <label>Fitness Level
+            <select name="level" required>
+              <option value="">Select level</option>
+              <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+            </select>
+          </label>
+          <label>Workout Days / Week
+            <select name="days" required>
+              <option value="3">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option>
+            </select>
+          </label>
+        </div>
+        <label>Available Equipment
+          <input name="equipment" placeholder="e.g. Dumbbells, resistance band, or bodyweight">
+        </label>
+        <button class="primary-btn full" type="submit">Generate My 7-Day Plan ✦</button>
+      </form>
+    </section>
+
+    <section id="results" class="section hidden">
+      <div class="section-heading">
+        <span class="eyebrow">02 / YOUR AI PLAN</span>
+        <h2>Your FitBuddy plan</h2>
+        <p>Generated with Gemini AI from your fitness profile.</p>
+      </div>
+      <div id="loading" class="loading hidden">FitBuddy is creating your plan<span>...</span></div>
+      <article id="planOutput" class="output-card"></article>
+    </section>
+
+    <section id="chat" class="section">
+      <div class="section-heading">
+        <span class="eyebrow">03 / ASK FITBUDDY</span>
+        <h2>Have a fitness question?</h2>
+        <p>Ask FitBuddy for general workout guidance.</p>
+      </div>
+      <div class="chat-card">
+        <div id="chatMessages" class="chat-messages">
+          <div class="bot-message">Hi! I'm FitBuddy. Ask me something like “What can I do instead of squats?”</div>
+        </div>
+        <form id="chatForm" class="chat-form">
+          <input id="chatInput" placeholder="Ask a fitness question..." required>
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>FitBuddy</strong> · AI Fitness Plan Generator
+    <p>For general educational fitness guidance only. Consult a qualified professional for personal medical or injury-related advice.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
