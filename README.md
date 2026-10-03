@@ -29,8 +29,6 @@ FitBuddy/
 ├── index.html
 ├── style.css
 ├── script.js
-├── server/
-│   ├── server.js
-│   └── .env
+├── server.js
 ├── package.json
 └── package-lock.json
