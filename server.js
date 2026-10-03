@@ -15,233 +15,167 @@ const __dirname = path.dirname(__filename);
 
 app.use(cors());
 app.use(express.json());
-
-
-// Serve the original FitBuddy website
 app.use(express.static(__dirname));
 
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY
+});
 
-// Gemini AI
-function getAI() {
+const MODEL = "gemini-3.8-flash";
 
-  if (!process.env.GEMINI_API_KEY) {
+// Retry Gemini when the service temporarily returns 503
+async function generateWithRetry(prompt, attempts = 3) {
+  let lastError;
 
-    throw new Error(
-      "Gemini API key is not configured. Add GEMINI_API_KEY to Render Environment Variables."
-    );
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: MODEL,
+        contents: prompt
+      });
 
+      return response.text;
+    } catch (error) {
+      lastError = error;
+
+      const message = error?.message || "";
+
+      if (
+        !message.includes("503") &&
+        !message.includes("UNAVAILABLE") &&
+        !message.includes("high demand")
+      ) {
+        throw error;
+      }
+
+      console.log(`Gemini unavailable. Retry ${i + 1}/${attempts}`);
+
+      if (i < attempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
   }
 
-  return new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
-  });
-
+  throw lastError;
 }
 
 
-// FitBuddy instructions
-const systemInstruction = `
-You are FitBuddy, a friendly AI fitness planning assistant for general educational fitness guidance.
+// =========================
+// 7-DAY FITNESS PLAN
+// =========================
 
-Create practical, beginner-friendly fitness guidance.
-
-Do not diagnose medical conditions, prescribe treatment,
-or claim to replace a doctor or certified fitness professional.
-
-If the user mentions a medical condition, injury, severe pain,
-pregnancy, or another situation requiring professional advice,
-recommend speaking with an appropriate healthcare professional.
-
-For workout plans:
-
-- Include a 7-day schedule.
-- Include exercise names.
-- Include sets/reps or duration.
-- Include rest periods.
-- Include warm-up and cool-down.
-- Include simple general nutrition and hydration habits.
-- Avoid extreme dieting.
-- Avoid unsafe calorie restriction.
-- Avoid dangerous exercises.
-- Use the user's provided details and equipment.
-- Keep responses clear with headings and bullet points.
-`;
-
-
-// Generate fitness plan
 app.post("/api/generate-plan", async (req, res) => {
-
   try {
-
-    const {
-      name,
-      age,
-      gender,
-      height,
-      weight,
-      goal,
-      level,
-      days,
-      equipment
-    } = req.body;
-
-
-    if (
-      !name ||
-      !age ||
-      !height ||
-      !weight ||
-      !goal ||
-      !level ||
-      !days
-    ) {
-
-      return res.status(400).json({
-        error: "Please complete all required fitness details."
-      });
-
-    }
-
+    const data = req.body;
 
     const prompt = `
-Create a personalized 7-day general fitness plan for:
+You are FitBuddy, a friendly AI fitness planning assistant.
 
-Name: ${name}
-Age: ${age}
-Gender: ${gender || "Not specified"}
-Height: ${height} cm
-Weight: ${weight} kg
-Goal: ${goal}
-Fitness level: ${level}
-Workout days per week: ${days}
-Available equipment: ${equipment || "Bodyweight only"}
+Create a personalized 7-day fitness plan based on this user profile:
 
-Include:
+Name: ${data.name || "User"}
+Age: ${data.age || "Not provided"}
+Gender: ${data.gender || "Not provided"}
+Height: ${data.height || "Not provided"}
+Weight: ${data.weight || "Not provided"}
+Goal: ${data.goal || "General fitness"}
+Fitness Level: ${data.level || "Beginner"}
+Days Available: ${data.days || "3"}
+Equipment: ${data.equipment || "No equipment"}
 
-1. A short welcome.
-2. A 7-day workout schedule.
-3. Exercises with sets/reps or duration and rest.
-4. Warm-up guidance.
-5. Cool-down guidance.
-6. Simple general nutrition habits.
-7. Hydration habits.
-8. Progress tips.
-9. A short safety disclaimer.
+Create a clear 7-day plan.
 
-Make the plan practical and beginner-friendly.
+For each day include:
+- Workout
+- Exercises
+- Sets and repetitions
+- Rest time
+- Short explanation
+
+Also include basic nutrition and recovery advice.
+
+Keep the advice suitable for general educational fitness guidance.
+Do not diagnose medical conditions or provide medical treatment.
+If an exercise may be unsuitable because of an injury or medical condition, advise consulting a qualified professional.
+
+Return the plan in clear, readable text.
 `;
 
+    const text = await generateWithRetry(prompt);
 
-    const ai = getAI();
-
-
-    const response = await ai.models.generateContent({
-
-      model: "gemini-3.8-flash",
-
-      contents: prompt,
-
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.7
-      }
-
-    });
-
-
-    res.json({
-      text: response.text || "No plan was generated."
-    });
-
+    res.json({ text });
 
   } catch (error) {
+    console.error("Generate plan error:", error);
 
-    console.error("Generate Plan Error:", error);
-
-    res.status(500).json({
-      error: error.message || "Unable to generate the plan."
+    res.status(503).json({
+      error: "Gemini is temporarily unavailable. Please try again in a few seconds."
     });
-
   }
-
 });
 
 
-// Ask FitBuddy
+// =========================
+// AI CHAT
+// =========================
+
 app.post("/api/chat", async (req, res) => {
-
   try {
+    const message = req.body.message;
 
-    const { message } = req.body;
-
-
-    if (!message || !message.trim()) {
-
+    if (!message) {
       return res.status(400).json({
-        error: "Please enter a question."
+        error: "Message is required."
       });
-
     }
 
+    const prompt = `
+You are FitBuddy, a friendly AI fitness assistant.
 
-    const ai = getAI();
+Answer the user's fitness question clearly and briefly.
 
+Give general educational fitness guidance.
+Do not diagnose medical conditions or prescribe medical treatment.
 
-    const response = await ai.models.generateContent({
+User question:
+${message}
+`;
 
-      model: "gemini-2.5-flash",
+    const text = await generateWithRetry(prompt);
 
-      contents: message,
-
-      config: {
-
-        systemInstruction: `${systemInstruction}
-
-Answer the user's fitness question briefly,
-clearly, and practically.
-
-Do not provide medical diagnosis or treatment.`,
-
-        temperature: 0.7
-
-      }
-
-    });
-
-
-    res.json({
-      text: response.text || "I couldn't generate a response."
-    });
-
+    res.json({ text });
 
   } catch (error) {
+    console.error("Chat error:", error);
 
-    console.error("Ask FitBuddy Error:", error);
-
-    res.status(500).json({
-      error: error.message || "Unable to answer right now."
+    res.status(503).json({
+      error: "Gemini is temporarily unavailable. Please try again in a few seconds."
     });
-
   }
-
 });
 
 
-// Health check
+// =========================
+// HEALTH CHECK
+// =========================
+
 app.get("/api/health", (req, res) => {
-
   res.json({
-    status: "FitBuddy server is running"
+    status: "OK",
+    service: "FitBuddy"
   });
-
 });
 
 
-// Start server
+// =========================
+// HOME PAGE
+// =========================
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+
 app.listen(PORT, () => {
-
-  console.log(
-    `FitBuddy is running on port ${PORT}`
-  );
-
+  console.log(`FitBuddy running on port ${PORT}`);
 });
