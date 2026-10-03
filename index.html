@@ -3,109 +3,268 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FitBuddy — AI Fitness Assistant</title>
-  <link rel="stylesheet" href="style.css">
+  <title>FitBuddy - AI Fitness Planner</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1f7a4d;
+      color: white;
+      padding: 25px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 900px;
+      margin: 30px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .card h2 {
+      margin-bottom: 10px;
+      color: #1f7a4d;
+    }
+
+    .card p {
+      margin-bottom: 20px;
+      color: #555;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #1f7a4d;
+    }
+
+    button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 15px;
+      background: #1f7a4d;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #17623d;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    #loading {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+      color: #1f7a4d;
+      font-weight: bold;
+    }
+
+    #result {
+      display: none;
+      margin-top: 25px;
+      padding: 20px;
+      background: #f0f8f4;
+      border-left: 5px solid #1f7a4d;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    #error {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #ffecec;
+      color: #b00020;
+      border-radius: 10px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #777;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 26px;
+      }
+
+      .container {
+        width: 94%;
+      }
+
+      .card {
+        padding: 18px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark">F</span> FitBuddy</div>
-    <a href="#planner" class="nav-btn">Create Plan</a>
+
+  <header>
+    <h1>💪 FitBuddy</h1>
+    <p>Your AI-powered fitness planning assistant</p>
   </header>
 
-  <main>
-    <section class="hero">
-      <div class="hero-copy">
-        <span class="eyebrow">POWERED BY GEMINI AI</span>
-        <h1>Your AI<br><span>Fitness Assistant</span></h1>
-        <p>Generate a personalized 7-day fitness plan based on your goals, fitness level, schedule, and available equipment.</p>
-        <a href="#planner" class="primary-btn">Build My Plan <span>→</span></a>
-      </div>
-      <div class="hero-card">
-        <div class="pulse">♥</div>
-        <div>
-          <strong>Smart fitness planning</strong>
-          <p>Workouts • Habits • Progress</p>
-        </div>
-      </div>
-    </section>
+  <main class="container">
 
-    <section id="planner" class="section">
-      <div class="section-heading">
-        <span class="eyebrow">01 / FITNESS PROFILE</span>
-        <h2>Tell FitBuddy about you</h2>
-        <p>Enter your basic details and let Gemini create your plan.</p>
+    <div class="card">
+      <h2>Create Your Fitness Plan</h2>
+
+      <p>
+        Tell FitBuddy about your fitness goal, experience level,
+        available equipment, and schedule.
+      </p>
+
+      <textarea
+        id="message"
+        placeholder="Example: I am a beginner. I want to lose weight and exercise at home 5 days a week. Create a workout plan for me."
+      ></textarea>
+
+      <button id="generateBtn" onclick="generatePlan()">
+        Generate Fitness Plan
+      </button>
+
+      <div id="loading">
+        Creating your personalized fitness plan...
       </div>
 
-      <form id="fitnessForm" class="form-card">
-        <div class="grid">
-          <label>Name <input name="name" placeholder="Your name" required></label>
-          <label>Age <input name="age" type="number" min="13" max="100" placeholder="e.g. 20" required></label>
-          <label>Gender
-            <select name="gender">
-              <option value="Not specified">Prefer not to say</option>
-              <option>Male</option><option>Female</option><option>Other</option>
-            </select>
-          </label>
-          <label>Height (cm) <input name="height" type="number" min="100" max="250" placeholder="e.g. 170" required></label>
-          <label>Weight (kg) <input name="weight" type="number" min="30" max="250" placeholder="e.g. 65" required></label>
-          <label>Fitness Goal
-            <select name="goal" required>
-              <option value="">Select goal</option>
-              <option>Weight loss</option><option>Weight gain</option><option>Muscle building</option><option>General fitness</option>
-            </select>
-          </label>
-          <label>Fitness Level
-            <select name="level" required>
-              <option value="">Select level</option>
-              <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
-            </select>
-          </label>
-          <label>Workout Days / Week
-            <select name="days" required>
-              <option value="3">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="6">6 days</option><option value="7">7 days</option>
-            </select>
-          </label>
-        </div>
-        <label>Available Equipment
-          <input name="equipment" placeholder="e.g. Dumbbells, resistance band, or bodyweight">
-        </label>
-        <button class="primary-btn full" type="submit">Generate My 7-Day Plan ✦</button>
-      </form>
-    </section>
+      <div id="error"></div>
 
-    <section id="results" class="section hidden">
-      <div class="section-heading">
-        <span class="eyebrow">02 / YOUR AI PLAN</span>
-        <h2>Your FitBuddy plan</h2>
-        <p>Generated with Gemini AI from your fitness profile.</p>
-      </div>
-      <div id="loading" class="loading hidden">FitBuddy is creating your plan<span>...</span></div>
-      <article id="planOutput" class="output-card"></article>
-    </section>
+      <div id="result"></div>
+    </div>
 
-    <section id="chat" class="section">
-      <div class="section-heading">
-        <span class="eyebrow">03 / ASK FITBUDDY</span>
-        <h2>Have a fitness question?</h2>
-        <p>Ask FitBuddy for general workout guidance.</p>
-      </div>
-      <div class="chat-card">
-        <div id="chatMessages" class="chat-messages">
-          <div class="bot-message">Hi! I'm FitBuddy. Ask me something like “What can I do instead of squats?”</div>
-        </div>
-        <form id="chatForm" class="chat-form">
-          <input id="chatInput" placeholder="Ask a fitness question..." required>
-          <button type="submit">Send</button>
-        </form>
-      </div>
-    </section>
   </main>
 
   <footer>
-    <strong>FitBuddy</strong> · AI Fitness Plan Generator
-    <p>For general educational fitness guidance only. Consult a qualified professional for personal medical or injury-related advice.</p>
+    FitBuddy provides general educational fitness guidance.
   </footer>
 
-  <script src="script.js"></script>
+  <script>
+    async function generatePlan() {
+      const messageInput = document.getElementById("message");
+      const button = document.getElementById("generateBtn");
+      const loading = document.getElementById("loading");
+      const result = document.getElementById("result");
+      const error = document.getElementById("error");
+
+      const message = messageInput.value.trim();
+
+      // Clear previous messages
+      result.style.display = "none";
+      error.style.display = "none";
+      result.textContent = "";
+      error.textContent = "";
+
+      if (!message) {
+        error.textContent = "Please enter your fitness goal first.";
+        error.style.display = "block";
+        return;
+      }
+
+      button.disabled = true;
+      loading.style.display = "block";
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: message
+          })
+        });
+
+        // Read the response as text first.
+        // This prevents the "Unexpected token '<'" error
+        // from hiding the real server response.
+        const responseText = await response.text();
+
+        let data;
+
+        try {
+          data = JSON.parse(responseText);
+        } catch (jsonError) {
+          throw new Error(
+            "The server returned an invalid response: " +
+            responseText.substring(0, 200)
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || "Unable to generate the plan.");
+        }
+
+        if (!data.reply) {
+          throw new Error("The AI returned an empty response.");
+        }
+
+        result.textContent = data.reply;
+        result.style.display = "block";
+
+      } catch (err) {
+        console.error("FitBuddy error:", err);
+
+        error.textContent =
+          "Unable to generate the plan. " + err.message;
+
+        error.style.display = "block";
+
+      } finally {
+        button.disabled = false;
+        loading.style.display = "none";
+      }
+    }
+  </script>
+
 </body>
 </html>
