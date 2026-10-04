@@ -1,170 +1,175 @@
-// ===============================
-// FitBuddy Frontend JavaScript
-// ===============================
+const fitnessForm = document.getElementById("fitnessForm");
+const results = document.getElementById("results");
+const loading = document.getElementById("loading");
+const planOutput = document.getElementById("planOutput");
+const errorMessage = document.getElementById("errorMessage");
 
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatMessages = document.getElementById("chatMessages");
 
-// -------------------------------
-// Add message to chat
-// -------------------------------
+// ===============================
+// GENERATE FITNESS PLAN
+// ===============================
 
-function addMessage(message, sender) {
-  if (!chatMessages) return;
+fitnessForm.addEventListener("submit", async (event) => {
+event.preventDefault();
 
-  const messageDiv = document.createElement("div");
+```
+const formData = new FormData(fitnessForm);
 
-  messageDiv.className =
-    sender === "user" ? "message user-message" : "message bot-message";
+const data = {
+    name: formData.get("name"),
+    age: formData.get("age"),
+    gender: formData.get("gender"),
+    height: formData.get("height"),
+    weight: formData.get("weight"),
+    goal: formData.get("goal"),
+    activityLevel: formData.get("level"),
+    workoutDays: formData.get("days"),
+    equipment: formData.get("equipment")
+};
 
-  messageDiv.textContent = message;
+results.classList.remove("hidden");
+loading.classList.remove("hidden");
+planOutput.innerHTML = "";
 
-  chatMessages.appendChild(messageDiv);
-
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+if (errorMessage) {
+    errorMessage.classList.add("hidden");
+    errorMessage.textContent = "";
 }
 
-// -------------------------------
-// Generate AI response
-// -------------------------------
-
-async function askFitBuddy(message) {
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: message
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Unable to generate the plan.");
-    }
-
-    return data.text;
-  } catch (error) {
-    console.error("FitBuddy API error:", error);
-
-    throw new Error(
-      "Unable to generate the plan. Please try again."
-    );
-  }
-}
-
-// -------------------------------
-// Chat form
-// -------------------------------
-
-if (chatForm) {
-  chatForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const message = chatInput?.value?.trim();
-
-    if (!message) {
-      return;
-    }
-
-    addMessage(message, "user");
-
-    if (chatInput) {
-      chatInput.value = "";
-    }
-
-    addMessage("Thinking...", "bot");
-
-    try {
-      const answer = await askFitBuddy(message);
-
-      const botMessages =
-        chatMessages.querySelectorAll(".bot-message");
-
-      const lastBotMessage =
-        botMessages[botMessages.length - 1];
-
-      if (lastBotMessage) {
-        lastBotMessage.textContent = answer;
-      }
-    } catch (error) {
-      const botMessages =
-        chatMessages.querySelectorAll(".bot-message");
-
-      const lastBotMessage =
-        botMessages[botMessages.length - 1];
-
-      if (lastBotMessage) {
-        lastBotMessage.textContent = error.message;
-      }
-    }
-  });
-}
-
-// -------------------------------
-// Generate fitness plan
-// -------------------------------
-
-async function generatePlan() {
-  const goal =
-    document.getElementById("goal")?.value || "general fitness";
-
-  const experience =
-    document.getElementById("experience")?.value || "beginner";
-
-  const days =
-    document.getElementById("days")?.value || "3";
-
-  const equipment =
-    document.getElementById("equipment")?.value || "no equipment";
-
-  const prompt = `
-Create a practical fitness plan.
-
-Goal: ${goal}
-Experience level: ${experience}
-Workout days per week: ${days}
-Available equipment: ${equipment}
-
-Include:
-- Weekly workout schedule
-- Exercises
-- Sets and repetitions
-- Rest periods
-- Basic recovery advice
-- General nutrition guidance
-
-Keep it simple and easy to follow.
-`;
-
-  return askFitBuddy(prompt);
-}
-
-// -------------------------------
-// Button support
-// -------------------------------
-
-const generateButton =
-  document.getElementById("generatePlan");
+const generateButton = document.getElementById("generateButton");
 
 if (generateButton) {
-  generateButton.addEventListener("click", async () => {
     generateButton.disabled = true;
-    generateButton.textContent = "Generating...";
+    generateButton.textContent = "Creating your plan...";
+}
+
+results.scrollIntoView({
+    behavior: "smooth"
+});
+
+try {
+    const response = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+        throw new Error(
+            result.error || "Unable to generate the fitness plan."
+        );
+    }
+
+    planOutput.innerHTML = formatPlan(result.plan);
+
+} catch (error) {
+    console.error("Generate plan error:", error);
+
+    if (errorMessage) {
+        errorMessage.textContent =
+            "Unable to generate the plan. Please try again.";
+        errorMessage.classList.remove("hidden");
+    } else {
+        planOutput.innerHTML = `
+            <div class="error-message">
+                Unable to generate the plan. Please try again.
+            </div>
+        `;
+    }
+
+} finally {
+    loading.classList.add("hidden");
+
+    if (generateButton) {
+        generateButton.disabled = false;
+        generateButton.textContent = "Generate My 7-Day Plan ✦";
+    }
+}
+```
+
+});
+
+// ===============================
+// FORMAT AI PLAN
+// ===============================
+
+function formatPlan(text) {
+if (!text) {
+return "<p>No plan was returned. Please try again.</p>";
+}
+
+```
+return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.*)$/gm, "<h2>$1</h2>")
+    .replace(/^\* (.*)$/gm, "<li>$1</li>")
+    .replace(/^- (.*)$/gm, "<li>$1</li>")
+    .replace(/\n\n/g, "<br><br>")
+    .replace(/\n/g, "<br>");
+```
+
+}
+
+// ===============================
+// CHAT
+// ===============================
+
+if (chatForm) {
+chatForm.addEventListener("submit", async (event) => {
+event.preventDefault();
+
+```
+    const message = chatInput.value.trim();
+
+    if (!message) {
+        return;
+    }
+
+    addChatMessage(message, "user");
+
+    chatInput.value = "";
+
+    const thinkingMessage = addChatMessage(
+        "FitBuddy is thinking...",
+        "bot"
+    );
 
     try {
-      const plan = await generatePlan();
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message
+            })
+        });
 
-      alert(plan);
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.error || "Chat request failed."
+            );
+        }
+
+        thinkingMessage.textContent =
+            result.text || "Sorry, I could not generate a response.";
+
     } catch (error) {
-      alert(error.message);
-    } finally {
-      generateButton.disabled = false;
-      generateButton.textContent = "Generate Plan";
-    }
-  });
-}
+        console.error("Chat error:", error);
+
+        thinkingMessage.textContent =
+```
