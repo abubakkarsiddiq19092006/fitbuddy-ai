@@ -2,7 +2,6 @@ const fitnessForm = document.getElementById("fitnessForm");
 const results = document.getElementById("results");
 const loading = document.getElementById("loading");
 const planOutput = document.getElementById("planOutput");
-const errorMessage = document.getElementById("errorMessage");
 
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
@@ -12,89 +11,83 @@ const chatMessages = document.getElementById("chatMessages");
 // GENERATE FITNESS PLAN
 // ===============================
 
-fitnessForm.addEventListener("submit", async (event) => {
+if (fitnessForm) {
+fitnessForm.addEventListener("submit", async function (event) {
 event.preventDefault();
 
 ```
-const formData = new FormData(fitnessForm);
+    const formData = new FormData(fitnessForm);
 
-const data = {
-    name: formData.get("name"),
-    age: formData.get("age"),
-    gender: formData.get("gender"),
-    height: formData.get("height"),
-    weight: formData.get("weight"),
-    goal: formData.get("goal"),
-    activityLevel: formData.get("level"),
-    workoutDays: formData.get("days"),
-    equipment: formData.get("equipment")
-};
+    const data = {
+        name: formData.get("name"),
+        age: formData.get("age"),
+        gender: formData.get("gender"),
+        height: formData.get("height"),
+        weight: formData.get("weight"),
+        goal: formData.get("goal"),
+        activityLevel: formData.get("level"),
+        workoutDays: formData.get("days"),
+        equipment: formData.get("equipment")
+    };
 
-results.classList.remove("hidden");
-loading.classList.remove("hidden");
-planOutput.innerHTML = "";
+    results.classList.remove("hidden");
+    loading.classList.remove("hidden");
+    planOutput.innerHTML = "";
 
-if (errorMessage) {
-    errorMessage.classList.add("hidden");
-    errorMessage.textContent = "";
-}
-
-const generateButton = document.getElementById("generateButton");
-
-if (generateButton) {
-    generateButton.disabled = true;
-    generateButton.textContent = "Creating your plan...";
-}
-
-results.scrollIntoView({
-    behavior: "smooth"
-});
-
-try {
-    const response = await fetch("/api/generate-plan", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
+    results.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
     });
 
-    const result = await response.json();
+    const button = fitnessForm.querySelector("button[type='submit']");
 
-    if (!response.ok || !result.success) {
-        throw new Error(
-            result.error || "Unable to generate the fitness plan."
-        );
+    if (button) {
+        button.disabled = true;
+        button.textContent = "Creating your plan...";
     }
 
-    planOutput.innerHTML = formatPlan(result.plan);
+    try {
+        const response = await fetch("/api/generate-plan", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
 
-} catch (error) {
-    console.error("Generate plan error:", error);
+        const result = await response.json();
 
-    if (errorMessage) {
-        errorMessage.textContent =
-            "Unable to generate the plan. Please try again.";
-        errorMessage.classList.remove("hidden");
-    } else {
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.error || "Unable to generate the fitness plan."
+            );
+        }
+
+        planOutput.innerHTML = formatPlan(result.plan);
+
+    } catch (error) {
+        console.error("Generate plan error:", error);
+
         planOutput.innerHTML = `
             <div class="error-message">
-                Unable to generate the plan. Please try again.
+                <h3>Unable to generate the plan</h3>
+                <p>${escapeHtml(error.message)}</p>
+                <p>Please try again in a few seconds.</p>
             </div>
         `;
-    }
 
-} finally {
-    loading.classList.add("hidden");
+    } finally {
+        loading.classList.add("hidden");
 
-    if (generateButton) {
-        generateButton.disabled = false;
-        generateButton.textContent = "Generate My 7-Day Plan ✦";
+        if (button) {
+            button.disabled = false;
+            button.textContent = "Generate My 7-Day Plan ✦";
+        }
     }
-}
+});
 ```
 
-});
+}
 
 // ===============================
 // FORMAT AI PLAN
@@ -106,20 +99,34 @@ return "<p>No plan was returned. Please try again.</p>";
 }
 
 ```
-return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+let formatted = escapeHtml(text);
+
+formatted = formatted
     .replace(/^### (.*)$/gm, "<h3>$1</h3>")
     .replace(/^## (.*)$/gm, "<h2>$1</h2>")
     .replace(/^# (.*)$/gm, "<h2>$1</h2>")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/^\* (.*)$/gm, "<li>$1</li>")
     .replace(/^- (.*)$/gm, "<li>$1</li>")
     .replace(/\n\n/g, "<br><br>")
     .replace(/\n/g, "<br>");
+
+return formatted;
 ```
 
+}
+
+// ===============================
+// ESCAPE HTML
+// ===============================
+
+function escapeHtml(text) {
+return String(text)
+.replace(/&/g, "&")
+.replace(/</g, "<")
+.replace(/>/g, ">")
+.replace(/"/g, """)
+.replace(/'/g, "'");
 }
 
 // ===============================
@@ -127,7 +134,7 @@ return text
 // ===============================
 
 if (chatForm) {
-chatForm.addEventListener("submit", async (event) => {
+chatForm.addEventListener("submit", async function (event) {
 event.preventDefault();
 
 ```
@@ -153,7 +160,7 @@ event.preventDefault();
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                message
+                message: message
             })
         });
 
@@ -166,10 +173,40 @@ event.preventDefault();
         }
 
         thinkingMessage.textContent =
-            result.text || "Sorry, I could not generate a response.";
+            result.text ||
+            "Sorry, I could not generate a response.";
 
     } catch (error) {
         console.error("Chat error:", error);
 
         thinkingMessage.textContent =
+            "Sorry, FitBuddy is temporarily unavailable. Please try again.";
+    }
+});
 ```
+
+}
+
+// ===============================
+// ADD CHAT MESSAGE
+// ===============================
+
+function addChatMessage(message, type) {
+const div = document.createElement("div");
+
+```
+div.className =
+    type === "user"
+        ? "user-message"
+        : "bot-message";
+
+div.textContent = message;
+
+chatMessages.appendChild(div);
+
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+return div;
+```
+
+}
