@@ -14,15 +14,10 @@ const PORT = process.env.PORT || 10000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ===============================
-// MIDDLEWARE
-// ===============================
-
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Serve frontend files
+// Serve website files
 app.use(express.static(__dirname));
 
 // ===============================
@@ -56,10 +51,58 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
     res.json({
         status: "ok",
-        service: "FitBuddy",
+        message: "FitBuddy server is running",
         geminiConfigured: Boolean(process.env.GEMINI_API_KEY)
     });
 });
+
+// ===============================
+// GEMINI REQUEST WITH FALLBACK
+// ===============================
+
+async function generateWithFallback(prompt) {
+    const ai = getAI();
+
+    const models = [
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash"
+    ];
+
+    let lastError;
+
+    for (const model of models) {
+        try {
+            console.log(`Trying Gemini model: ${model}`);
+
+            const response = await ai.models.generateContent({
+                model: model,
+                contents: prompt
+            });
+
+            if (!response || !response.text) {
+                throw new Error("Gemini returned an empty response.");
+            }
+
+            console.log(`Gemini success using: ${model}`);
+
+            return response.text;
+
+        } catch (error) {
+            lastError = error;
+
+            console.error(
+                `${model} failed:`,
+                error?.message || error
+            );
+
+            // Wait briefly before trying the next model
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+    }
+
+    throw lastError || new Error("All Gemini models failed.");
+}
 
 // ===============================
 // GENERATE FITNESS PLAN
@@ -87,14 +130,12 @@ app.post("/api/generate-plan", async (req, res) => {
             });
         }
 
-        const ai = getAI();
-
         const prompt = `
 You are FitBuddy, an AI fitness assistant.
 
-Create a practical, safe and personalized 7-day fitness plan.
+Create a practical, safe and personalized fitness plan.
 
-USER INFORMATION:
+User information:
 
 Name: ${name || "User"}
 Age: ${age || "Not provided"}
@@ -107,68 +148,35 @@ Workout Days Per Week: ${workoutDays || "Not provided"}
 Diet Preference: ${diet || "Not provided"}
 Available Equipment: ${equipment || "Bodyweight"}
 
+Create a useful 7-day fitness plan.
+
 Include:
 
 1. Personalized introduction
-2. 7-day workout schedule
+2. Weekly schedule
 3. Exercises for each workout day
 4. Sets and repetitions
-5. Rest time
-6. Warm-up instructions
-7. Cool-down instructions
+5. Rest periods
+6. Warm-up
+7. Cool-down
 8. Basic nutrition guidance
 9. Hydration advice
 10. Recovery and sleep advice
 11. Safety precautions
 
-Make the plan realistic and appropriate for the user's fitness level.
+Keep the plan realistic and suitable for the user's fitness level.
 
-Do not recommend steroids or unsafe substances.
-Do not provide dangerous or extreme dieting advice.
-Do not diagnose medical conditions.
-If the user has an injury, serious pain, medical condition,
-or asks about medication, recommend consulting a qualified
-healthcare professional.
+Do not recommend dangerous exercises, extreme diets, steroids,
+unsafe substances, or medical treatment.
+
+If the user has a medical condition, injury, severe pain,
+or medication-related question, recommend consulting
+a qualified healthcare professional.
 
 Use clear headings and bullet points.
 `;
 
-        let response;
-        let lastError;
-
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                response = await ai.models.generateContent({
-                    model: "gemini-3.8-flash",
-                    contents: prompt
-                });
-
-                break;
-            } catch (error) {
-                lastError = error;
-
-                console.error(
-                    `Gemini plan attempt ${attempt + 1} failed:`,
-                    error?.message || error
-                );
-
-                if (attempt < 2) {
-                    await new Promise((resolve) =>
-                        setTimeout(resolve, 2000 * (attempt + 1))
-                    );
-                }
-            }
-        }
-
-        if (!response) {
-            throw lastError || new Error("Gemini request failed.");
-        }
-
-        const text = response.text;
-
-        if (!text) {
-            throw new Error("Gemini returned an empty response.");
-        }
+        const text = await generateWithFallback(prompt);
 
         res.json({
             success: true,
@@ -178,11 +186,10 @@ Use clear headings and bullet points.
     } catch (error) {
         console.error("Generate Plan Error:", error);
 
-        res.status(500).json({
+        res.status(503).json({
             success: false,
             error:
-                error?.message ||
-                "Unable to generate fitness plan. Please try again."
+                "Gemini is temporarily busy. Please try again in a few seconds."
         });
     }
 });
@@ -202,13 +209,11 @@ app.post("/api/chat", async (req, res) => {
             });
         }
 
-        const ai = getAI();
-
         const prompt = `
 You are FitBuddy, an AI fitness assistant.
 
-Answer the user's fitness question clearly, briefly,
-and practically.
+Answer the user's fitness question clearly,
+briefly and practically.
 
 You can help with:
 
@@ -224,28 +229,17 @@ You can help with:
 
 Do not diagnose medical conditions.
 Do not prescribe medication.
-Do not recommend steroids or unsafe substances.
 
-If the user asks about a serious injury, severe pain,
-medical condition, or medication, recommend consulting
-a qualified healthcare professional.
-
-Keep the answer easy to understand.
+If the user asks about serious injury,
+medical conditions, severe pain or medication,
+recommend consulting a qualified healthcare professional.
 
 User question:
+
 ${message}
 `;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3.8-flash",
-            contents: prompt
-        });
-
-        const text = response.text;
-
-        if (!text) {
-            throw new Error("Gemini returned an empty response.");
-        }
+        const text = await generateWithFallback(prompt);
 
         res.json({
             success: true,
@@ -255,9 +249,10 @@ ${message}
     } catch (error) {
         console.error("Chat Error:", error);
 
-        res.status(500).json({
+        res.status(503).json({
             success: false,
-            error:error?.message ||"Chat error"
+            error:
+                "FitBuddy AI is temporarily busy. Please try again in a few seconds."
         });
     }
 });
