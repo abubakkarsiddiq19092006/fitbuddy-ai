@@ -186,10 +186,9 @@ Use clear headings and bullet points.
     } catch (error) {
         console.error("Generate Plan Error:", error);
 
-        res.status(503).json({
+        res.status(500).json({
             success: false,
-            error:
-                "Gemini is temporarily busy. Please try again in a few seconds."
+            error: error.message || "Unknown Gemini error"
         });
     }
 });
