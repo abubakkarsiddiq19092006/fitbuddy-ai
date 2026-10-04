@@ -257,9 +257,7 @@ ${message}
 
         res.status(500).json({
             success: false,
-            error:
-                error?.message ||
-                "FitBuddy chat is temporarily unavailable. Please try again."
+            error:error?.message ||"Chat error"
         });
     }
 });
